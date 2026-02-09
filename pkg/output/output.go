@@ -25,14 +25,17 @@ func WriteURLs(writer io.Writer, results <-chan string, blacklistMap mapset.Set[
 		if err != nil {
 			continue
 		}
-		if path.Ext(u.Path) != "" && blacklistMap.Contains(strings.ToLower(path.Ext(u.Path))) {
+		ext := strings.TrimPrefix(strings.ToLower(path.Ext(u.Path)), ".")
+		if ext != "" && blacklistMap.Contains(ext) {
 			continue
 		}
 
-		if RemoveParameters && !lastURL.Contains(u.Host+u.Path) {
-			continue
+		if RemoveParameters {
+			if lastURL.Contains(u.Host + u.Path) {
+				continue // already seen this endpoint, skip duplicate params
+			}
+			lastURL.Add(u.Host + u.Path)
 		}
-		lastURL.Add(u.Host + u.Path)
 
 		buf.B = append(buf.B, []byte(result)...)
 		buf.B = append(buf.B, "\n"...)
@@ -58,7 +61,8 @@ func WriteURLsJSON(writer io.Writer, results <-chan string, blacklistMap mapset.
 		if err != nil {
 			continue
 		}
-		if blacklistMap.Contains(strings.ToLower(path.Ext(u.Path))) {
+		ext := strings.TrimPrefix(strings.ToLower(path.Ext(u.Path)), ".")
+		if ext != "" && blacklistMap.Contains(ext) {
 			continue
 		}
 		jr.Url = result
